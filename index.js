@@ -203,22 +203,27 @@ app.get('/api/contacts', async (req, res) => {
 app.use('/api', (_req, res) =>
   res.status(404).json({ ok: false, message: 'Not found' })
 );
-
 const PORT = Number(process.env.PORT ?? 8080);
-const server = app.listen(PORT, () => {
-  console.log(`API running on http://localhost:${PORT}`);
-});
 
-const shutdown = async (signal) => {
-  console.log(`\n${signal} received. Shutting down...`);
-  server.close(async () => {
-    try {
-      await pool.end();
-      console.log('DB pool closed. Bye!');
-      process.exit(0);
-    } catch {
-      process.exit(1);
-    }
+// If running on Vercel, export the app (no listen). Locally, listen.
+if (process.env.VERCEL) {
+} else {
+  const server = app.listen(PORT, () => {
+    console.log(`API running on http://localhost:${PORT}`);
   });
-};
-['SIGINT', 'SIGTERM'].forEach(sig => process.on(sig, () => shutdown(sig)));
+
+  const shutdown = async (signal) => {
+    console.log(`\n${signal} received. Shutting down...`);
+    server.close(async () => {
+      try {
+        await pool.end();
+        console.log('DB pool closed. Bye!');
+        process.exit(0);
+      } catch {
+        process.exit(1);
+      }
+    });
+  };
+  ['SIGINT', 'SIGTERM'].forEach(sig => process.on(sig, () => shutdown(sig)));
+}
+export default app;
